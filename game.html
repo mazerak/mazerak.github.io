@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>egirdle</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB"
+      crossorigin="anonymous"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <nav class="navbar navbar-dark navbar-expand">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="home.html">home</a>
+        <div class="navbar-nav me-auto navbar-spacing">
+          <a class="navbar-brand" href="game.html">game</a>
+        </div>
+      </div>
+    </nav>
+    <div class="background-wrapper">
+      <div class="container mt-4">
+        <h1 id="quoteText"></h1>
+        <h2 id="quoteDate"></h2>
+        <div class="button-grid-4x2" id="button-grid-names"></div>
+        <div
+          class="button-grid-3x3"
+          id="button-grid-years"
+          style="display: none"
+        ></div>
+      </div>
+    </div>
+    <script>
+      const game = {
+        round: 0,
+        numGuesses: 0,
+        phase: "",
+      };
+      const people = [
+        "walker",
+        "keith",
+        "chris",
+        "nim",
+        "kylie",
+        "ethan",
+        "avery",
+        "theodore",
+      ];
+      const years = [
+        "2018",
+        "2019",
+        "2020",
+        "2021",
+        "2022",
+        "2023",
+        "2024",
+        "2025",
+        "2026",
+      ];
+      const storedQuotes = JSON.parse(localStorage.getItem("quotes"));
+      const quoteTextField = document.getElementById("quoteText");
+      const dateTextField = document.getElementById("quoteDate");
+      const nameGrid = document.getElementById("button-grid-names");
+      const yearGrid = document.getElementById("button-grid-years");
+
+      function buildNameButtons() {
+        nameGrid.innerHTML = "";
+        people.forEach((name) => {
+          const btn = document.createElement("button");
+          btn.id = `button-${name.toLowerCase()}`;
+          btn.className = "btn btn-dark w-100";
+          // capitalize the first letter of the name
+          btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+          nameGrid.appendChild(btn);
+        });
+      }
+
+      function buildYearButtons() {
+        yearGrid.innerHTML = "";
+        years.forEach((year) => {
+          const btn = document.createElement("button");
+          btn.id = `button-${year}`;
+          btn.className = "btn btn-dark w-100";
+          btn.textContent = year;
+          yearGrid.appendChild(btn);
+        });
+      }
+
+      function blockNameButtons() {
+        nameGrid
+          .querySelectorAll(".btn")
+          .forEach((btn) => (btn.disabled = true));
+      }
+
+      function blockYearButtons() {
+        yearGrid
+          .querySelectorAll(".btn")
+          .forEach((btn) => (btn.disabled = true));
+      }
+
+      function startRound() {
+        const quote = storedQuotes[game.round];
+        const year = new Date(quote.timestamp).getFullYear().toString();
+
+        quoteTextField.textContent = `"${quote.text}"`;
+
+        switch (game.round) {
+          // given quote and date, guess author
+          case 0:
+            dateTextField.textContent = formatDate(quote.timestamp);
+            nameGrid.style.display = "grid";
+            yearGrid.style.display = "none";
+            buildNameButtons();
+            break;
+          // given quote and author, guess date
+          case 1:
+            dateTextField.textContent = `- ${quote.author}`;
+            nameGrid.style.display = "none";
+            yearGrid.style.display = "grid";
+            buildYearButtons();
+            break;
+          // given quote, guess author and date
+          case 2:
+            dateTextField.textContent = "";
+            nameGrid.style.display = "grid";
+            yearGrid.style.display = "none";
+            game.phase = "author";
+            buildNameButtons();
+            break;
+        }
+      }
+
+      nameGrid.addEventListener("click", function (e) {
+        if (e.target.tagName !== "BUTTON" || e.target.disabled) return;
+
+        const quote = storedQuotes[game.round];
+        const guess = e.target.id.replace("button-", "");
+
+        if (guess === quote.author) {
+          e.target.classList.remove("btn-dark");
+          e.target.classList.add("btn-success");
+          blockNameButtons();
+
+          if (game.round === 2 && game.phase === "author") {
+            setTimeout(() => {
+              game.phase = "year";
+              nameGrid.style.display = "none";
+              yearGrid.style.display = "grid";
+              buildYearButtons();
+            }, 1000);
+            return;
+          }
+
+          setTimeout(() => {
+            game.round++;
+            if (game.round <= 2) {
+              startRound();
+            } else {
+              endGame();
+            }
+          }, 1000);
+        } else {
+          game.numGuesses++;
+          e.target.classList.remove("btn-dark");
+          e.target.classList.add("btn-danger");
+          e.target.disabled = true;
+        }
+      });
+
+      yearGrid.addEventListener("click", function (e) {
+        if (e.target.tagName !== "BUTTON" || e.target.disabled) return;
+
+        const quote = storedQuotes[game.round];
+        const guess = e.target.id.replace("button-", "");
+        const year = new Date(quote.timestamp).getFullYear().toString();
+
+        if (guess === year) {
+          e.target.classList.remove("btn-dark");
+          e.target.classList.add("btn-success");
+          blockYearButtons();
+
+          setTimeout(() => {
+            game.round++;
+            if (game.round <= 2) {
+              startRound();
+            } else {
+              endGame();
+            }
+          }, 1000);
+        } else {
+          game.numGuesses++;
+          e.target.classList.remove("btn-dark");
+          e.target.classList.add("btn-danger");
+          e.target.disabled = true;
+        }
+      });
+
+      function endGame() {
+        // we're in the endgame now
+        // 7 wrong answers in round 1, 8 wrong answers in round 2, 15 wrong answers in round 3
+        const maxGuesses = 30;
+        // what % correct was ur performance
+        const percentage = (1 - game.numGuesses / maxGuesses) * 100;
+        quoteTextField.textContent = "your did it";
+        dateTextField.textContent = `Score: ${percentage.toFixed(2)}%`;
+        yearGrid.style.display = "none";
+      }
+
+      function formatDate(timestamp) {
+        const date = new Date(timestamp);
+        const months = [
+          "January",
+          "February",
+          "March",
+          "April",
+          "May",
+          "June",
+          "July",
+          "August",
+          "September",
+          "October",
+          "November",
+          "December",
+        ];
+        const day = date.getDate();
+        // append the proper suffix to the date number
+        const suffix = [11, 12, 13].includes(day)
+          ? "th"
+          : day % 10 === 1
+            ? "st"
+            : day % 10 === 2
+              ? "nd"
+              : day % 10 === 3
+                ? "rd"
+                : "th";
+        return `${months[date.getMonth()]} ${day}${suffix}, ${date.getFullYear()}`;
+      }
+
+      startRound();
+    </script>
+  </body>
+</html>
