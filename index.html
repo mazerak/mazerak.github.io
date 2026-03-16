@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="login-wrapper">
+    <div class="background-wrapper">
       <div class="login-card">
         <h1>hi</h1>
         <div class="mb-3">
@@ -54,6 +54,8 @@
 
           const data = await res.json();
           console.log("Quotes loaded", data.quotes);
+          localStorage.setItem("quotes", JSON.stringify(data.quotes));
+          window.location.href = "home.html";
         } catch (err) {
           console.error("Request failed: ", err);
           errorMsg.textContent = "Could not reach server";
