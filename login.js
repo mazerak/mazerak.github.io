@@ -4,6 +4,24 @@ const passwordInput = document.getElementById("password");
 const loginButton = document.getElementById("login-button");
 const errorMsg = document.getElementById("error-msg");
 
+const existingToken = localStorage.getItem("token");
+if (existingToken) {
+  fetch("https://api.mazerak.com/verify-token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: existingToken,
+    },
+    body: JSON.stringify({}),
+  }).then((res) => {
+    if (res.ok) {
+      window.location.href = "home.html";
+    } else {
+      localStorage.removeItem("token");
+    }
+  });
+}
+
 async function login() {
   errorMsg.classList.remove("visible");
   const password = passwordInput.value;
