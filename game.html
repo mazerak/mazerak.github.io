@@ -11,13 +11,26 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href="style.css" />
+    <style>
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: url(blobcat.jpg) center/cover no-repeat;
+        opacity: 0.015;
+        z-index: -1;
+      }
+    </style>
   </head>
   <body>
     <nav class="navbar navbar-dark navbar-expand">
       <div class="container-fluid">
         <a class="navbar-brand" href="home.html">home</a>
         <div class="navbar-nav me-auto navbar-spacing">
-          <a class="navbar-brand" href="game.html">game</a>
+          <a class="navbar-brand" href="game.html">daily</a>
         </div>
       </div>
     </nav>
@@ -31,12 +44,15 @@
           id="button-grid-years"
           style="display: none"
         ></div>
+        <button id="share-button" class="btn btn-dark" style="display: none">
+          Share Results
+        </button>
       </div>
     </div>
     <script>
       const game = {
         round: 0,
-        numGuesses: 0,
+        numGuesses: [0, 0, 0, 0],
         phase: "",
       };
       const people = [
@@ -124,7 +140,7 @@
             break;
           // given quote, guess author and date
           case 2:
-            dateTextField.textContent = "";
+            dateTextField.textContent = "guess the person, then the year";
             nameGrid.style.display = "grid";
             yearGrid.style.display = "none";
             game.phase = "author";
@@ -163,7 +179,11 @@
             }
           }, 1000);
         } else {
-          game.numGuesses++;
+          if (game.round === 2) {
+            game.numGuesses[2]++;
+          } else {
+            game.numGuesses[game.round]++;
+          }
           e.target.classList.remove("btn-dark");
           e.target.classList.add("btn-danger");
           e.target.disabled = true;
@@ -191,7 +211,11 @@
             }
           }, 1000);
         } else {
-          game.numGuesses++;
+          if (game.round === 2) {
+            game.numGuesses[3]++;
+          } else {
+            game.numGuesses[game.round]++;
+          }
           e.target.classList.remove("btn-dark");
           e.target.classList.add("btn-danger");
           e.target.disabled = true;
@@ -203,10 +227,48 @@
         // 7 wrong answers in round 1, 8 wrong answers in round 2, 15 wrong answers in round 3
         const maxGuesses = 30;
         // what % correct was ur performance
-        const percentage = (1 - game.numGuesses / maxGuesses) * 100;
+        const total =
+          game.numGuesses[0] +
+          game.numGuesses[1] +
+          game.numGuesses[2] +
+          game.numGuesses[3];
+        const percentage = (1 - total / maxGuesses) * 100;
+
         quoteTextField.textContent = "your did it";
-        dateTextField.textContent = `Score: ${percentage.toFixed(2)}%`;
+        dateTextField.textContent = `Score: ${percentage.toFixed(0)}%`;
+        nameGrid.style.display = "none";
         yearGrid.style.display = "none";
+
+        const red = "🟥";
+        const green = "🟩";
+        const r1 = red.repeat(game.numGuesses[0]) + green;
+        const r2 = red.repeat(game.numGuesses[1]) + green;
+        const r3 =
+          red.repeat(game.numGuesses[2]) +
+          green +
+          " " +
+          red.repeat(game.numGuesses[3]) +
+          green;
+
+        const shareText = [
+          `egirdle ${new Date().toLocaleDateString()}`,
+          "",
+          `Round 1: ${r1}`,
+          `Round 2: ${r2}`,
+          `Round 3: ${r3}`,
+          "",
+          `Score: ${percentage.toFixed(0)}%`,
+          "https://mazerak.com",
+        ].join("\n");
+
+        const shareButton = document.getElementById("share-button");
+        shareButton.style.display = "";
+        shareButton.addEventListener("click", () => {
+          navigator.clipboard.writeText(shareText).then(() => {
+            shareButton.textContent = "Copied to clipboard";
+            setTimeout(() => (shareButton.textContent = "Share Results"), 2000);
+          });
+        });
       }
 
       function formatDate(timestamp) {

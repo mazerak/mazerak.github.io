@@ -14,8 +14,9 @@ body {
 .background-wrapper {
   min-height: 100vh;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 5vh;
 }
 
 .login-card {
@@ -77,25 +78,37 @@ body {
   display: block;
 }
 
+html,
+body {
+  overflow: hidden;
+  height: 100%;
+}
+
 h1 {
   font-size: 48px;
   font-weight: bold;
   text-align: center;
-  margin-bottom: 20px;
+  min-height: 80px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 10%;
 }
 
 h2 {
   font-size: 24px;
   font-style: italic;
   text-align: center;
-  margin-bottom: 150px;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 10%;
 }
 
 .button-grid-4x2 {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
-  margin-bottom: 150px;
+  margin-bottom: 20%;
 }
 
 .button-grid-4x2 .btn {
@@ -112,10 +125,25 @@ h2 {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-bottom: 150px;
+  margin-bottom: 10%;
 }
 
 .button-grid-3x3 .btn {
   font-size: 20px;
   height: 80px;
+}
+
+#share-button {
+  margin-top: 20px;
+  max-width: 300px;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  display: block;
+  margin: 20px auto 0;
+}
+
+#share-button:hover {
+  background: #ddd;
 }
