@@ -106,7 +106,15 @@ nameGrid.addEventListener("click", async function (e) {
   } else {
     e.target.classList.remove("btn-dark");
     e.target.classList.add("btn-danger");
-    endGame();
+    const correctBtn = document.getElementById(`button-${result.author}`);
+    if (correctBtn) {
+      correctBtn.classList.remove("btn-dark");
+      correctBtn.classList.add("btn-success");
+    }
+
+    setTimeout(() => {
+      endGame();
+    }, 1500);
   }
 });
 
