@@ -19,14 +19,14 @@ if (existingToken) {
         window.location.href = "home.html";
       } else {
         localStorage.removeItem("token");
-        document.body.style.visbility = "visible";
+        document.body.style.visibility = "visible";
       }
     })
     .catch(() => {
-      document.body.style.visbility = "visible";
+      document.body.style.visibility = "visible";
     });
 } else {
-  document.body.style.visbility = "visible";
+  document.body.style.visibility = "visible";
 }
 
 async function login() {
