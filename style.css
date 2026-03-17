@@ -134,3 +134,16 @@ body {
   margin-bottom: 20px;
   color: #aaa;
 }
+
+#retry-button {
+  max-width: 300px;
+  background: #fff;
+  color: #000;
+  font-weight: 600;
+  border: none;
+  display: block;
+  margin: 10px auto 0;
+}
+#retry-button:hover {
+  background: #ddd;
+}
