@@ -110,34 +110,36 @@ nameGrid.addEventListener("click", async function (e) {
   }
 });
 
+let shareText = "";
+const shareButton = document.getElementById("share-button");
+shareButton.addEventListener("click", () => {
+  navigator.clipboard.writeText(shareText).then(() => {
+    shareButton.textContent = "Copied to clipboard";
+    setTimeout(() => (shareButton.textContent = "Share Results"), 2000);
+  });
+});
+
+const retryButton = document.getElementById("retry-button");
+retryButton.addEventListener("click", () => {
+  streak = 0;
+  retryButton.style.display = "none";
+  shareButton.style.display = "none";
+  loadNextQuote();
+});
+
 function endGame() {
   quoteTextField.textContent = "you are dead LOL";
   dateTextField.textContent = `final streak: ${streak}`;
   nameGrid.style.display = "none";
 
-  const shareText = [
+  shareText = [
     `egirldle endless`,
     `Streak: ${streak}`,
     "https://mazerak.com",
   ].join("\n");
 
-  const shareButton = document.getElementById("share-button");
-  shareButton.style.display = "";
-  shareButton.addEventListener("click", () => {
-    navigator.clipboard.writeText(shareText).then(() => {
-      shareButton.textContent = "Copied to clipboard";
-      setTimeout(() => (shareButton.textContent = "Share Results"), 2000);
-    });
-  });
-
-  const retryButton = document.getElementById("retry-button");
-  retryButton.style.display = "";
-  retryButton.addEventListener("click", () => {
-    streak = 0;
-    retryButton.style.display = "none";
-    document.getElementById("share-button").style.display = "none";
-    loadNextQuote();
-  });
+  document.getElementById("share-button").style.display = "";
+  document.getElementById("retry-button").style.display = "";
 }
 
 async function loadNextQuote() {
