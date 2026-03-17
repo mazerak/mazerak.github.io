@@ -129,6 +129,15 @@ function endGame() {
       setTimeout(() => (shareButton.textContent = "Share Results"), 2000);
     });
   });
+
+  const retryButton = document.getElementById("retry-button");
+  retryButton.style.display = "";
+  retryButton.addEventListener("click", () => {
+    streak = 0;
+    retryButton.style.display = "none";
+    document.getElementById("share-button").style.display = "none";
+    loadNextQuote();
+  });
 }
 
 async function loadNextQuote() {
