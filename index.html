@@ -34,45 +34,6 @@
         <p id="error-msg" class="error-msg">Invalid password</p>
       </div>
     </div>
-    <script>
-      const API_URL = "https://api.mazerak.com/get-quotes";
-
-      const passwordInput = document.getElementById("password");
-      const loginButton = document.getElementById("login-button");
-      const errorMsg = document.getElementById("error-msg");
-
-      async function login() {
-        errorMsg.classList.remove("visible");
-        const password = passwordInput.value;
-        if (!password) return;
-
-        try {
-          const res = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ password }),
-          });
-
-          if (!res.ok) {
-            errorMsg.classList.add("visible");
-            return;
-          }
-
-          const data = await res.json();
-          console.log("Quotes loaded", data.quotes);
-          localStorage.setItem("quotes", JSON.stringify(data.quotes));
-          window.location.href = "home.html";
-        } catch (err) {
-          console.error("Request failed: ", err);
-          errorMsg.textContent = "Could not reach server";
-          errorMsg.classList.add("visible");
-        }
-      }
-
-      loginButton.addEventListener("click", login);
-      passwordInput.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") login();
-      });
-    </script>
+    <script src="login.js"></script>
   </body>
 </html>

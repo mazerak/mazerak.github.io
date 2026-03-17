@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mazerak</title>
+    <title>egirldle</title>
     <link rel="icon" href="favicon.ico" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
@@ -12,11 +12,7 @@
       crossorigin="anonymous"
     />
     <link rel="stylesheet" href="style.css" />
-    <style>
-      .background-wrapper {
-        align-items: center;
-        min-height: 50%;
-      }
+    <link rel="stylesheet" href="extra-quote-styles.css" />
     </style>
   </head>
   <body>
@@ -30,8 +26,20 @@
       </div>
     </nav>
     <div class="background-wrapper">
-      hello there is not much here yet please use the navbar top left croski-kun
-      thanks
+      <div class="container mt-4">
+        <h1 id="quoteText"></h1>
+        <h2 id="quoteDate"></h2>
+        <div class="button-grid-4x2" id="button-grid-names"></div>
+        <div
+          class="button-grid-3x3"
+          id="button-grid-years"
+          style="display: none"
+        ></div>
+        <button id="share-button" class="btn btn-dark" style="display: none">
+          Share Results
+        </button>
+      </div>
     </div>
+    <script src="daily.js"></script>
   </body>
 </html>
