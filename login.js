@@ -13,13 +13,20 @@ if (existingToken) {
       Authorization: existingToken,
     },
     body: JSON.stringify({}),
-  }).then((res) => {
-    if (res.ok) {
-      window.location.href = "home.html";
-    } else {
-      localStorage.removeItem("token");
-    }
-  });
+  })
+    .then((res) => {
+      if (res.ok) {
+        window.location.href = "home.html";
+      } else {
+        localStorage.removeItem("token");
+        document.body.style.visbility = "visible";
+      }
+    })
+    .catch(() => {
+      document.body.style.visbility = "visible";
+    });
+} else {
+  document.body.style.visbility = "visible";
 }
 
 async function login() {
