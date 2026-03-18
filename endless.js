@@ -22,7 +22,7 @@ const people = [
   "kylie",
   "ethan",
   "avery",
-  "theodore",
+  "theo",
 ];
 
 const quoteTextField = document.getElementById("quoteText");
@@ -43,7 +43,11 @@ function buildNameButtons() {
     const btn = document.createElement("button");
     btn.id = `button-${name.toLowerCase()}`;
     btn.className = "btn btn-dark w-100";
-    btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    if (name !== "theo") {
+      btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    } else {
+      btn.textContent = name.charAt(0).toUpperCase() + name.slice(1) + "dore";
+    }
     nameGrid.appendChild(btn);
   });
 }
