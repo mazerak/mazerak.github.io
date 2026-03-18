@@ -27,7 +27,7 @@ const people = [
   "kylie",
   "ethan",
   "avery",
-  "theodore",
+  "theo",
 ];
 const years = ["2020", "2021", "2022", "2023", "2024", "2025", "2026"];
 let storedQuotes = null;
@@ -43,7 +43,11 @@ function buildNameButtons() {
     btn.id = `button-${name.toLowerCase()}`;
     btn.className = "btn btn-dark w-100";
     // capitalize the first letter of the name
-    btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    if (name !== "theo") {
+      btn.textContent = name.charAt(0).toUpperCase() + name.slice(1);
+    } else {
+      btn.textContent = name.charAt(0).toUpperCase() + name.slice(1) + "dore";
+    }
     nameGrid.appendChild(btn);
   });
 }
