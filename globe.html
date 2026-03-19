@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>mazerak</title>
+    <title>geographdle</title>
     <link rel="icon" href="favicon.ico" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
@@ -13,9 +13,8 @@
     />
     <link rel="stylesheet" href="style.css" />
     <style>
-      .background-wrapper {
-        align-items: center;
-        min-height: 50%;
+      canvas {
+        display: block;
       }
     </style>
   </head>
@@ -24,15 +23,26 @@
       <div class="container-fluid">
         <div class="navbar-nav me-auto navbar-spacing">
           <a class="navbar-brand" href="home.html">home</a>
-          <a class="navbar-brand" href="daily.html">daily</a>
+          <a class="navbar-brand" href="game.html">daily</a>
           <a class="navbar-brand" href="endless.html">endless</a>
           <a class="navbar-brand" href="globe.html">globe thing</a>
         </div>
       </div>
     </nav>
-    <div class="background-wrapper">
-      hello there is not much here yet please use the navbar top left croski-kun
-      thanks
+    <div id="globe-container">
+      <div id="info-overlay">
+        <h2>globe thing</h2>
+        <p>click and drag to rotate</p>
+        <p>this has a lot of problems</p>
+        <p>can't wait to rewrite this tomorrow</p>
+      </div>
+      <div id="country-label"></div>
     </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/delaunator@5.0.1/delaunator.min.js"></script>
+    <script src="mapgen.js"></script>
+    <script src="map-to-globe.js"></script>
+    <script src="globe.js"></script>
   </body>
 </html>
