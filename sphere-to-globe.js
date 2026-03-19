@@ -98,10 +98,13 @@ function renderSphereMap(map, worldGroup, options = {}) {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
 
-  const material = new THREE.MeshBasicMaterial({
+  const material = new THREE.MeshPhongMaterial({
     vertexColors: true,
     //color: 0xffffff,
+    //transparent: true,
+    //opacity: 0.05,
     side: THREE.DoubleSide,
+    shininess: 1,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
