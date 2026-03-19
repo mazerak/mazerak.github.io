@@ -16,7 +16,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
 
 // globe sphere
-const globeGeometry = new THREE.SphereGeometry(1, 64, 64);
+const globeGeometry = new THREE.SphereGeometry(0.9, 64, 64);
 const globeMaterial = new THREE.MeshPhongMaterial({
   color: 0x1a1a2e,
   emissive: 0x545454,
@@ -25,7 +25,7 @@ const globeMaterial = new THREE.MeshPhongMaterial({
 const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 
 // atmosphere sphere
-const atmosGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+const atmosGeometry = new THREE.SphereGeometry(1.075, 64, 64);
 const atmosMaterial = new THREE.MeshBasicMaterial({
   color: 0x87cefa,
   transparent: true,
