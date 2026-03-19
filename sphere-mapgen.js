@@ -1,11 +1,12 @@
 const SPHERE_CONFIG = {
-  NUM_POINTS: 5000,
-  WAVELENGTH: 0.6,
+  NUM_POINTS: 4,
+  WAVELENGTH: 0.8,
   OCEAN_THRESHOLD: 0.33,
   NUM_CONTINENTS_MIN: 4,
   NUM_CONTINENTS_MAX: 7,
 };
 
+/*
 // fibonacci sphere
 function fibonacciSphere(n) {
   const points = [];
@@ -17,6 +18,96 @@ function fibonacciSphere(n) {
     points.push({ lat, lon });
   }
   return points;
+}
+*/
+
+// icosphere
+function icosphere(subdivisions) {
+  // golden ratio
+  const goldenRatio = (1 + Math.sqrt(5)) / 2;
+
+  let vertices = [
+    [-1, goldenRatio, 0],
+    [1, goldenRatio, 0],
+    [-1, -goldenRatio, 0],
+    [1, -goldenRatio, 0],
+    [0, -1, goldenRatio],
+    [0, 1, goldenRatio],
+    [0, -1, -goldenRatio],
+    [0, 1, -goldenRatio],
+    [goldenRatio, 0, -1],
+    [goldenRatio, 0, 1],
+    [-goldenRatio, 0, -1],
+    [-goldenRatio, 0, 1],
+  ];
+
+  // normalize to unit sphere
+  vertices = vertices.map(([x, y, z]) => {
+    const len = Math.sqrt(x * x + y * y + z * z);
+    return [x / len, y / len, z / len];
+  });
+
+  let faces = [
+    [0, 11, 5],
+    [0, 5, 1],
+    [0, 1, 7],
+    [0, 7, 10],
+    [0, 10, 11],
+    [1, 5, 9],
+    [5, 11, 4],
+    [11, 10, 2],
+    [10, 7, 6],
+    [7, 1, 8],
+    [3, 9, 4],
+    [3, 4, 2],
+    [3, 2, 6],
+    [3, 6, 8],
+    [3, 8, 9],
+    [4, 9, 5],
+    [2, 4, 11],
+    [6, 2, 10],
+    [8, 6, 7],
+    [9, 8, 1],
+  ];
+
+  // subdivide
+  const midpointCache = {};
+  function getMidpoint(i, j) {
+    const key = Math.min(i, j) + "-" + Math.max(i, j);
+    if (midpointCache[key] !== undefined) return midpointCache[key];
+
+    const [x1, y1, z1] = vertices[i];
+    const [x2, y2, z2] = vertices[j];
+    let mx = (x1 + x2) / 2;
+    let my = (y1 + y2) / 2;
+    let mz = (z1 + z2) / 2;
+    const len = Math.sqrt(mx * mx + my * my + mz * mz);
+    mx /= len;
+    my /= len;
+    mz /= len;
+
+    const idx = vertices.length;
+    vertices.push([mx, my, mz]);
+    midpointCache[key] = idx;
+    return idx;
+  }
+
+  for (let s = 0; s < subdivisions; s++) {
+    const newFaces = [];
+    for (const [a, b, c] of faces) {
+      const ab = getMidpoint(a, b);
+      const bc = getMidpoint(b, c);
+      const ca = getMidpoint(c, a);
+      newFaces.push([a, ab, ca], [b, bc, ab], [c, ca, bc], [ab, bc, ca]);
+    }
+    faces = newFaces;
+  }
+
+  return vertices.map(([x, y, z]) => {
+    const lat = Math.asin(y) * (180 / Math.PI);
+    const lon = Math.atan2(z, -x) * (180 / Math.PI);
+    return { lat, lon };
+  });
 }
 
 function sphereLatLonToXYZ(lat, lon, radius) {
@@ -41,7 +132,8 @@ function greatCircleDist(lat1, lon1, lat2, lon2) {
 }
 
 function generateSphereMap() {
-  const points = fibonacciSphere(SPHERE_CONFIG.NUM_POINTS);
+  const points = icosphere(SPHERE_CONFIG.NUM_POINTS);
+  //const points = fibonacciSphere(SPHERE_CONFIG.NUM_POINTS);
 
   // map points from lat, lon to lon, lat for d3-geo-voronoi
   const geoPoints = points.map((p) => [p.lon, p.lat]);
