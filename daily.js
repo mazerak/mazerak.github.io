@@ -178,8 +178,8 @@ yearGrid.addEventListener("click", function (e) {
 
 function endGame() {
   // we're in the endgame now
-  // 7 wrong answers in round 1, 8 wrong answers in round 2, 15 wrong answers in round 3
-  const maxGuesses = 30;
+  // 7 wrong answers in round 1, 6 wrong answers in round 2, 13 wrong answers in round 3
+  const maxGuesses = 26;
   // what % correct was ur performance
   const total =
     game.numGuesses[0] +
