@@ -130,5 +130,31 @@ function renderSphereMap(map, worldGroup, options = {}) {
 
   createCoastlines(map);
 
-  return cellMeshes;
+  cellMeshes.forEach((m) => worldGroup.remove(m));
+
+  const geometries = cellMeshes.map((m) => {
+    const g = m.geometry.clone();
+    const color = m.material.color;
+    const count = g.attributes.position.count;
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      colors[i * 3] = color.r;
+      colors[i * 3 + 1] = color.g;
+      colors[i * 3 + 2] = color.b;
+    }
+    g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+    return g;
+  });
+
+  const merged = THREE.BufferGeometryUtils.mergeBufferGeometries(geometries);
+  const mergedMesh = new THREE.Mesh(
+    merged,
+    new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+    }),
+  );
+  worldGroup.add(mergedMesh);
+
+  return [mergedMesh];
 }

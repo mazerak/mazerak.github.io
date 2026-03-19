@@ -1,6 +1,6 @@
 const SPHERE_CONFIG = {
-  NUM_POINTS: 4,
-  WAVELENGTH: 0.8,
+  NUM_POINTS: 5,
+  WAVELENGTH: 0.6,
   OCEAN_THRESHOLD: 0.33,
   NUM_CONTINENTS_MIN: 4,
   NUM_CONTINENTS_MAX: 7,
@@ -197,7 +197,7 @@ function assignSphereElevation(map) {
     continentSeeds.push({
       lat,
       lon,
-      size: 0.4 + Math.random() * 0.5,
+      size: 0.5 + Math.random() * 0.6,
       strength: 0.7 + Math.random() * 0.3,
     });
   }
