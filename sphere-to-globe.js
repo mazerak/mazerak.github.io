@@ -22,15 +22,16 @@ function renderSphereMap(map, worldGroup, options = {}) {
     );
   }
 
-  function createCellMesh(ring, color, regionIndex) {
+  function createCellMesh(ring, color, regionIndex, cellRadius) {
     if (!ring || ring.length < 3) return null;
 
-    const points3D = ring.map(([lon, lat]) => latLonToVec3(lat, lon, radius));
+    const r = cellRadius || radius;
+    const points3D = ring.map(([lon, lat]) => latLonToVec3(lat, lon, r));
 
     const center = new THREE.Vector3(0, 0, 0);
     points3D.forEach((p) => center.add(p));
     center.divideScalar(points3D.length);
-    center.normalize().multiplyScalar(radius);
+    center.normalize().multiplyScalar(r);
 
     const verts = [];
     const indices = [];
@@ -120,7 +121,9 @@ function renderSphereMap(map, worldGroup, options = {}) {
 
     const colorStr = sphereBiomeColor(map, r);
     const color = parseRGBString(colorStr);
-    const mesh = createCellMesh(ring, color, r);
+    const e = map.elevation[r];
+    const cellRadius = radius + (e - SPHERE_CONFIG.OCEAN_THRESHOLD) * 0.15;
+    const mesh = createCellMesh(ring, color, r, cellRadius);
 
     if (mesh) {
       worldGroup.add(mesh);
