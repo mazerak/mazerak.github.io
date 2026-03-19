@@ -16,7 +16,7 @@ renderer.setPixelRatio(window.devicePixelRatio);
 container.appendChild(renderer.domElement);
 
 // globe sphere
-const globeGeometry = new THREE.SphereGeometry(0.9, 64, 64);
+const globeGeometry = new THREE.SphereGeometry(0.1, 64, 64);
 const globeMaterial = new THREE.MeshPhongMaterial({
   color: 0x1a1a2e,
   emissive: 0x545454,
@@ -47,15 +47,82 @@ worldGroup.add(globe);
 worldGroup.add(atmosphere);
 scene.add(worldGroup);
 
-// generate map and project onto globe
-setTimeout(() => {
-  const map = generateSphereMap();
-  const cellMeshes = renderSphereMap(map, worldGroup);
-  loadingEl.style.display = "none";
-  console.log(
-    `Generated ${map.numRegions} regions, rendered ${cellMeshes.length} cells`,
+let currentTerrainMesh = null;
+
+function buildWorld() {
+  const btn = document.getElementById("rebuild-btn");
+  btn.disabled = true;
+  btn.textContent = "generating...";
+  loadingEl.style.display = "block";
+
+  SPHERE_CONFIG.NUM_POINTS = parseInt(
+    document.getElementById("slider-subdivisions").value,
   );
-}, 50); // small delay so "generating world..." renders first
+  SPHERE_CONFIG.WAVELENGTH = parseFloat(
+    document.getElementById("slider-wavelength").value,
+  );
+  SPHERE_CONFIG.OCEAN_THRESHOLD = parseFloat(
+    document.getElementById("slider-ocean").value,
+  );
+  SPHERE_CONFIG.NUM_CONTINENTS_MIN = parseInt(
+    document.getElementById("slider-cont-min").value,
+  );
+  SPHERE_CONFIG.NUM_CONTINENTS_MAX = parseInt(
+    document.getElementById("slider-cont-max").value,
+  );
+  const heightScale = parseFloat(
+    document.getElementById("slider-height").value,
+  );
+
+  // remove old terrain if it exists
+  if (currentTerrainMesh) {
+    currentTerrainMesh.forEach((m) => worldGroup.remove(m));
+    currentTerrainMesh = null;
+  }
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const map = generateSphereMap();
+      currentTerrainMesh = renderSphereMap(map, worldGroup, { heightScale });
+      loadingEl.style.display = "none";
+      btn.disabled = false;
+      btn.textContent = "rebuild world";
+    });
+  });
+}
+
+document
+  .querySelectorAll("#controls-panel input[type='range']")
+  .forEach((slider) => {
+    const valSpan = document.getElementById(
+      "val-" + slider.id.replace("slider-", ""),
+    );
+    if (valSpan) {
+      slider.addEventListener("input", () => {
+        valSpan.textContent = slider.value;
+      });
+    }
+  });
+
+document.getElementById("rebuild-btn").addEventListener("click", buildWorld);
+
+document.getElementById("reset-default-btn").addEventListener("click", () => {
+  document.getElementById("slider-subdivisions").value = 6;
+  document.getElementById("slider-wavelength").value = 0.6;
+  document.getElementById("slider-ocean").value = 0.35;
+  document.getElementById("slider-cont-min").value = 4;
+  document.getElementById("slider-cont-max").value = 7;
+  document.getElementById("slider-height").value = 0.15;
+
+  document.getElementById("val-subdivisions").textContent = "6";
+  document.getElementById("val-wavelength").textContent = "0.6";
+  document.getElementById("val-ocean").textContent = "0.35";
+  document.getElementById("val-cont-min").textContent = "4";
+  document.getElementById("val-cont-max").textContent = "7";
+  document.getElementById("val-height").textContent = "0.15";
+});
+
+buildWorld();
 
 // mouse controls
 let isDragging = false;

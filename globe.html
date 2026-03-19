@@ -16,6 +16,10 @@
       canvas {
         display: block;
       }
+      .page-layout {
+        display: flex;
+        height: calc(100vh - 56px);
+      }
     </style>
   </head>
   <body>
@@ -29,13 +33,93 @@
         </div>
       </div>
     </nav>
-    <div id="globe-container">
-      <div id="info-overlay">
-        <h2>globe thing</h2>
-        <p>click and drag to rotate</p>
+    <div class="page-layout">
+      <div id="globe-container">
+        <div id="info-overlay">
+          <h2>globe thing</h2>
+          <p>click and drag to rotate</p>
+        </div>
+        <div id="loading">generating world...</div>
+        <div id="country-label"></div>
       </div>
-      <div id="loading">generating world...</div>
-      <div id="country-label"></div>
+      <div id="controls-panel">
+        <h3>world settings</h3>
+
+        <div class="control-group">
+          <label>subdivisions <span id="val-subdivisions">6</span></label>
+          <input
+            type="range"
+            id="slider-subdivisions"
+            min="3"
+            max="7"
+            step="1"
+            value="6"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>wavelength <span id="val-wavelength">0.6</span></label>
+          <input
+            type="range"
+            id="slider-wavelength"
+            min="-1.5"
+            max="1.5"
+            step="0.05"
+            value="0.6"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>ocean threshold <span id="val-ocean">0.33</span></label>
+          <input
+            type="range"
+            id="slider-ocean"
+            min="0.01"
+            max="0.99"
+            step="0.01"
+            value="0.35"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>continents min <span id="val-cont-min">4</span></label>
+          <input
+            type="range"
+            id="slider-cont-min"
+            min="1"
+            max="20"
+            step="1"
+            value="4"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>continents max <span id="val-cont-max">7</span></label>
+          <input
+            type="range"
+            id="slider-cont-max"
+            min="1"
+            max="30"
+            step="1"
+            value="7"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>height scale <span id="val-height">0.15</span></label>
+          <input
+            type="range"
+            id="slider-height"
+            min="-1"
+            max="1"
+            step="0.01"
+            value="0.15"
+          />
+        </div>
+
+        <button id="rebuild-btn">rebuild world</button>
+        <button id="reset-default-btn">reset to default</button>
+      </div>
     </div>
     <script src="lib/three.min.js"></script>
     <script src="lib/d3.min.js"></script>
