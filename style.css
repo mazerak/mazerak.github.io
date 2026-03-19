@@ -197,3 +197,77 @@ body {
   font-size: 18px;
   z-index: 10;
 }
+
+#controls-panel {
+  width: 260px;
+  min-width: 260px;
+  padding: 20px;
+  background: #181818;
+  border-right: 1px solid #2a2a2a;
+  overflow-y: auto;
+}
+#controls-panel h3 {
+  font-size: 16px;
+  color: #fff;
+  margin-bottom: 20px;
+}
+.control-group {
+  margin-bottom: 16px;
+}
+.control-group label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+.control-group label span {
+  color: #fff;
+}
+.control-group input[type="range"] {
+  width: 100%;
+  accent-color: #4a9;
+}
+#rebuild-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#rebuild-btn:hover {
+  background: #ddd;
+}
+#rebuild-btn:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}
+#globe-container {
+  flex: 1;
+  position: relative;
+}
+
+#reset-default-btn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #fff;
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#reset-default-btn:hover {
+  background: #ddd;
+}
+#reset-default-btn:disabled {
+  background: #555;
+  color: #999;
+  cursor: not-allowed;
+}

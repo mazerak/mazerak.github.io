@@ -49,7 +49,7 @@ function renderSphereMap(map, worldGroup, options = {}) {
     const pB = regionPositions[b];
     const pC = regionPositions[c];
 
-    // Check if this triangle crosses the coastline
+    // check if this triangle crosses the coastline
     const aLand = elevation[a] >= SPHERE_CONFIG.OCEAN_THRESHOLD;
     const bLand = elevation[b] >= SPHERE_CONFIG.OCEAN_THRESHOLD;
     const cLand = elevation[c] >= SPHERE_CONFIG.OCEAN_THRESHOLD;
@@ -57,8 +57,8 @@ function renderSphereMap(map, worldGroup, options = {}) {
 
     let cA, cB, cC;
     if (mixed) {
-      // For coastal triangles, snap each vertex to either a land or ocean color
-      // Use a consistent coastal land/ocean color to avoid blending
+      // for coastal triangles, snap each vertex to either a land or ocean color
+      // use a consistent coastal land/ocean color to avoid blending and also create a border of sorts
       const coastLand = { r: 0.35, g: 0.55, b: 0.25 };
       const coastOcean = { r: 0.14, g: 0.22, b: 0.43 };
       cA = aLand ? coastLand : coastOcean;
