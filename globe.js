@@ -112,7 +112,7 @@ container.addEventListener(
   (e) => {
     e.preventDefault();
     camera.position.z += e.deltaY * 0.001;
-    camera.position.z = Math.max(1.2, Math.min(5, camera.position.z));
+    camera.position.z = Math.max(0, Math.min(5, camera.position.z));
   },
   { passive: false },
 );
