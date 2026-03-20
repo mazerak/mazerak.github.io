@@ -128,6 +128,7 @@ function buildWorld() {
   btn.textContent = "generating...";
   loadingEl.style.display = "block";
 
+  // read all config values from UI sliders
   SPHERE_CONFIG.NUM_POINTS = parseInt(
     document.getElementById("slider-subdivisions").value,
   );
@@ -155,7 +156,9 @@ function buildWorld() {
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      // generate map data
       const map = generateSphereMap();
+      // render map as a Three.js mesh
       currentTerrainMesh = renderSphereMap(map, worldGroup, { heightScale });
       loadingEl.style.display = "none";
       btn.disabled = false;
@@ -164,6 +167,7 @@ function buildWorld() {
   });
 }
 
+// slider value display
 document
   .querySelectorAll("#controls-panel input[type='range']")
   .forEach((slider) => {
@@ -177,8 +181,10 @@ document
     }
   });
 
+// rebuild world on button click
 document.getElementById("rebuild-btn").addEventListener("click", buildWorld);
 
+// reset sliders to preset default values
 document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("slider-subdivisions").value = 6;
   document.getElementById("slider-wavelength").value = 0.6;
@@ -195,12 +201,15 @@ document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("val-height").textContent = "0.15";
 });
 
+// kick off the initial world generation on first page load
 buildWorld();
 
-// mouse controls
+// MOUSE CONTROLS
 let isDragging = false;
 let previousMouse = { x: 0, y: 0 };
+// stores rotational velocity for momentum effect
 let rotationVelocity = { x: 0, y: 0 };
+// mouse position in normalized device coordinates
 const mouse = new THREE.Vector2();
 const raycaster = new THREE.Raycaster();
 
@@ -218,16 +227,22 @@ container.addEventListener("mousemove", (e) => {
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
   if (isDragging) {
+    // how far mouse moved since last frame
     const deltaX = e.clientX - previousMouse.x;
     const deltaY = e.clientY - previousMouse.y;
 
+    // scale rotation speed by zoom level, so that it doesn't rotate at 1000mph at super close zoom
     const zoomFactor = camera.position.z / 2.8;
     const speed = 0.005 * zoomFactor;
 
+    // store velocity for momentum later
     rotationVelocity.x = deltaY * speed;
     rotationVelocity.y = deltaX * speed;
 
+    // rotate the entire scene
     scene.rotation.y += deltaX * speed;
+    // clamp vertical rotation so you can't flip past the poles
+    // otherwise, you get a lot of weird movement where moving mouse left spins things left instead of right, etc
     scene.rotation.x = Math.max(
       -Math.PI / 2,
       Math.min(Math.PI / 2, scene.rotation.x + deltaY * speed),
@@ -247,6 +262,7 @@ container.addEventListener("mouseleave", () => {
 });
 
 // scroll to zoom in n out
+// clamped between 0 and 5
 container.addEventListener(
   "wheel",
   (e) => {
@@ -257,34 +273,46 @@ container.addEventListener(
   { passive: false },
 );
 
-// animation loop
+// ANIMATION LOOP
+// runs every frame, handles sun orbit, planet rotation, momentum, and rendering
 function animate() {
   requestAnimationFrame(animate);
 
+  // sun orbit
+  // increment orbit angle each frame, sun moves in a circle at SUN_DISTANCE around origin, slight vertical wobble
   dayNightAngle += DAY_NIGHT_SPEED;
   const sunX = Math.cos(dayNightAngle) * SUN_DISTANCE;
   const sunZ = Math.sin(dayNightAngle) * SUN_DISTANCE;
   const sunY = Math.sin(dayNightAngle * 0.3) * SUN_DISTANCE * 0.2;
 
+  // move sun, sun glow, and directional light all together
   sun.position.set(sunX, sunY, sunZ);
   sunGlow.position.set(sunX, sunY, sunZ);
   directionalLight.position.set(sunX, sunY, sunZ);
+  // spin the sun along its axis for slightly more realistic look
   sun.rotation.y += 0.001;
 
+  // planet rotation
+  // slowly spin planet along axis when not being actively dragged
   if (autoRotate && !isDragging) {
     worldGroup.rotation.y += 0.0016;
   }
 
+  // momentum
+  // when not being dragged, apply slowly decreasing rotation from the last drag
   if (!isDragging) {
+    // exponential decay of rotational velocity
     rotationVelocity.x *= 0.95;
     rotationVelocity.y *= 0.95;
 
+    // apply remaining velocity to world rotation
     worldGroup.rotation.x = Math.max(
       -Math.PI / 2,
       Math.min(Math.PI / 2, worldGroup.rotation.x + rotationVelocity.x),
     );
     worldGroup.rotation.y += rotationVelocity.y;
 
+    // once momenum is essentially 0, resume planet rotation
     if (
       Math.abs(rotationVelocity.x) < 0.0001 &&
       Math.abs(rotationVelocity.y) < 0.0001
@@ -293,24 +321,33 @@ function animate() {
     }
   }
 
+  // render the frame
   renderer.render(scene, camera);
 }
 
+// begin animation loop
 animate();
 
-// generate sun helper function
+// SUN MESH GENERATOR
+// creates a textured sun that looks similar to the planet, uses the same icosphere and noise technique but with sun colors instead of earth colors
 function generateSunMesh(radius, subdivisions) {
   const noise = new SimplexNoise();
+  // generate an icosphere
   const points = icosphere(subdivisions);
+  // d3-geo-voronoi requires [lon, lat] instead of [lat, lon]
   const geoPoints = points.map((p) => [p.lon, p.lat]);
   const voronoi = d3.geoVoronoi(geoPoints);
+  // create delaunay triangulation, where each triangle connects 3 point indices
   const delTriangles = voronoi.delaunay.triangles;
 
+  // compute elevation and 3d position for each point
   const elevations = [];
   const positions3D = [];
   for (let i = 0; i < points.length; i++) {
     const { lat, lon } = points[i];
+    // convert to xyz on unit sphere
     const pos = sphereLatLonToXYZ(lat, lon, 1);
+    // 4 octave 3d noise for surface detail
     let e = 0;
     let amp = 0.5;
     let freq = 4;
@@ -319,9 +356,12 @@ function generateSunMesh(radius, subdivisions) {
       amp *= 0.5;
       freq *= 2;
     }
+    // normalize noise to 0-1 range
     e = 0.5 + e * 0.5;
     elevations[i] = e;
+    // displace radius by elevation
     const r = radius + e * 0.15;
+    // convert lat/lon to 3d position at displaced radius
     const phi = (90 - lat) * (Math.PI / 180);
     const theta = (lon + 180) * (Math.PI / 180);
     positions3D[i] = new THREE.Vector3(
@@ -331,6 +371,8 @@ function generateSunMesh(radius, subdivisions) {
     );
   }
 
+  // build flat typed arrays for the gpu
+  // 3 vertices per triangle, 3 float components per vertex (position or color)
   const vertCount = delTriangles.length * 3;
   const verts = new Float32Array(vertCount * 3);
   const colors = new Float32Array(vertCount * 3);
@@ -345,21 +387,25 @@ function generateSunMesh(radius, subdivisions) {
       const p = positions3D[idx];
       const e = elevations[idx];
 
+      // position
       verts[base + j * 3] = p.x;
       verts[base + j * 3 + 1] = p.y;
       verts[base + j * 3 + 2] = p.z;
 
+      // color
       colors[base + j * 3] = 0.8 + e * 0.2;
       colors[base + j * 3 + 1] = 0.3 + e * 0.6;
       colors[base + j * 3 + 2] = 0.05 + e * 0.4;
     }
   }
 
+  // create gpu geometry from flat arrays
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.BufferAttribute(verts, 3));
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   geometry.computeVertexNormals();
 
+  // this material ignores lighting
   const material = new THREE.MeshBasicMaterial({
     vertexColors: true,
     side: THREE.DoubleSide,
@@ -368,11 +414,13 @@ function generateSunMesh(radius, subdivisions) {
   return new THREE.Mesh(geometry, material);
 }
 
-// generate stars helper function
+// STAR GENERATOR
+// creates field of randomly colored points scattered on a large sphere centered on the origin
 function createStars(count) {
   const positions = new Float32Array(count * 3);
   const colors = new Float32Array(count * 3);
 
+  // palette of star colors
   const starColors = [
     { r: 1.0, g: 1.0, b: 1.0 }, // white
     { r: 1.0, g: 0.95, b: 0.8 }, // warm white
@@ -383,6 +431,7 @@ function createStars(count) {
   ];
 
   for (let i = 0; i < count; i++) {
+    // random position on a sphere of radius 40-60
     const theta = Math.random() * Math.PI * 2;
     const phi = Math.acos(2 * Math.random() - 1);
     const r = 40 + Math.random() * 20;
@@ -390,7 +439,9 @@ function createStars(count) {
     positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
     positions[i * 3 + 2] = r * Math.cos(phi);
 
+    // picks a random color from the palette
     const c = starColors[Math.floor(Math.random() * starColors.length)];
+    // brightness variation
     colors[i * 3] = c.r * (0.85 + Math.random() * 0.15);
     colors[i * 3 + 1] = c.g * (0.85 + Math.random() * 0.15);
     colors[i * 3 + 2] = c.b * (0.85 + Math.random() * 0.15);
@@ -401,6 +452,7 @@ function createStars(count) {
   geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
   const material = new THREE.PointsMaterial({
     vertexColors: true,
+    // random star size
     size: Math.random() / 4,
     sizeAttenuation: true,
   });
@@ -408,7 +460,8 @@ function createStars(count) {
   return new THREE.Points(geometry, material);
 }
 
-// ── Handle Resize ──
+// window resize handler
+// updates camera aspect ratio and rendered size when the browser window size changes
 window.addEventListener("resize", () => {
   const w = container.clientWidth;
   const h = container.clientHeight;
