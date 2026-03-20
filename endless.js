@@ -151,7 +151,7 @@ function endGame() {
   shareText = [
     `egirldle endless`,
     //`Streak: ${streak}`,
-    `${greenNum}${red}`,
+    `${greenNum}${red} (${streak})`,
     "https://mazerak.com",
   ].join("\n");
 
