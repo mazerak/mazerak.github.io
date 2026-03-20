@@ -147,6 +147,9 @@ function buildWorld() {
   const heightScale = parseFloat(
     document.getElementById("slider-height").value,
   );
+  SPHERE_CONFIG.RIVER_PERCENTILE = parseFloat(
+    document.getElementById("slider-thresh").value,
+  );
 
   // remove old terrain if it exists
   if (currentTerrainMesh) {
@@ -192,6 +195,7 @@ document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("slider-cont-min").value = 4;
   document.getElementById("slider-cont-max").value = 7;
   document.getElementById("slider-height").value = 0.15;
+  document.getElementById("slider-thresh").value = 0.98;
 
   document.getElementById("val-subdivisions").textContent = "6";
   document.getElementById("val-wavelength").textContent = "0.6";
@@ -199,6 +203,7 @@ document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("val-cont-min").textContent = "4";
   document.getElementById("val-cont-max").textContent = "7";
   document.getElementById("val-height").textContent = "0.15";
+  document.getElementById("val-thresh").textContent = 0.98;
 });
 
 // kick off the initial world generation on first page load
