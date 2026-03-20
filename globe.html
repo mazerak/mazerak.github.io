@@ -58,7 +58,7 @@
         </div>
 
         <div class="control-group">
-          <label>wavelength <span id="val-wavelength">0.6</span></label>
+          <label>inverse noisiness <span id="val-wavelength">0.6</span></label>
           <input
             type="range"
             id="slider-wavelength"
@@ -70,7 +70,7 @@
         </div>
 
         <div class="control-group">
-          <label>ocean threshold <span id="val-ocean">0.33</span></label>
+          <label>ocean threshold <span id="val-ocean">0.35</span></label>
           <input
             type="range"
             id="slider-ocean"
@@ -114,6 +114,18 @@
             max="1"
             step="0.01"
             value="0.15"
+          />
+        </div>
+
+        <div class="control-group">
+          <label>river threshold <span id="val-thresh">0.98</span></label>
+          <input
+            type="range"
+            id="slider-thresh"
+            min="0"
+            max="1"
+            step="0.01"
+            value="0.98"
           />
         </div>
 
