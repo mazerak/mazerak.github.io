@@ -1,21 +1,31 @@
 // globe setup
+// grab the DOM container where the 3D canvas will live, and the loading text element
 const container = document.getElementById("globe-container");
 const loadingEl = document.getElementById("loading");
 const width = container.clientWidth;
 const height = container.clientHeight;
 
+// create the Three.js scene
+// this is the 3D world that holds all objects
 const scene = new THREE.Scene();
+// dark background so stars are visible
 scene.background = new THREE.Color(0x0f0f0f);
 
+// perspective camera: 45° field of view, aspect ratio from container, near/far clipping planes
+// positioned at z=3.25, looking at the origin where the globe sits
 const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
 camera.position.z = 3.25;
 
+// WebGL renderer with antialiasing for smoother edges
+// sized to fill the container, using device pixel ratio for sharp rendering on high-DPI screens
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(width, height);
 renderer.setPixelRatio(window.devicePixelRatio);
+// append the <canvas> element of the renderer into the DOM container
 container.appendChild(renderer.domElement);
 
-// globe sphere
+// CORE
+// (acts as the core, tried to remove it but everything broke so it stays lol)
 const globeGeometry = new THREE.SphereGeometry(0.1, 64, 64);
 const globeMaterial = new THREE.MeshPhongMaterial({
   color: 0x1a1a2e,
@@ -24,7 +34,8 @@ const globeMaterial = new THREE.MeshPhongMaterial({
 });
 const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 
-// atmosphere sphere
+// ATMOSPHERE
+// gives a faint blue halo around the globe edges
 const atmosGeometry = new THREE.SphereGeometry(1.075, 64, 64);
 const atmosMaterial = new THREE.MeshBasicMaterial({
   color: 0x87cefa,
@@ -34,27 +45,34 @@ const atmosMaterial = new THREE.MeshBasicMaterial({
 });
 const atmosphere = new THREE.Mesh(atmosGeometry, atmosMaterial);
 
-// stars
-const stars = createStars(5000);
+// STARS
+// scatter 8000 colored points on a large sphere around the scene
+const stars = createStars(8000);
 scene.add(stars);
 
-// sun
+// SUN
+// distance from the origin that the sun orbits at
 const SUN_DISTANCE = 40;
 // radius, subdivisions
 const sun = generateSunMesh(3, 4);
 scene.add(sun);
 
+// SUN GLOW
+// create a radial gradient on a canvas to use as a glow sprite texture
 const sunGlowCanvas = document.createElement("canvas");
 sunGlowCanvas.width = 128;
 sunGlowCanvas.height = 128;
 const glowCtx = sunGlowCanvas.getContext("2d");
+// radial gradient: bright yellow center fading to transparent
 const gradient = glowCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
 gradient.addColorStop(0, "rgba(255, 238, 136, 0.8)");
 gradient.addColorStop(0.3, "rgba(255, 200, 80, 0.3)");
 gradient.addColorStop(1, "rgba(255, 200, 80, 0)");
 glowCtx.fillStyle = gradient;
 glowCtx.fillRect(0, 0, 128, 128);
+// turn the canvas into a Three.js texture
 const sunGlowTexture = new THREE.CanvasTexture(sunGlowCanvas);
+// sprites always face the camera, so the glow circle is always visible
 const sunGlow = new THREE.Sprite(
   new THREE.SpriteMaterial({
     map: sunGlowTexture,
@@ -62,31 +80,48 @@ const sunGlow = new THREE.Sprite(
     blending: THREE.AdditiveBlending,
   }),
 );
+// scale up the sprite so the glow extends beyond the sun mesh
 sunGlow.scale.set(4, 4, 1);
 scene.add(sunGlow);
 
-// lighting
+// LIGHTING
+// dim ambient light with a dark blue tint — ensures the dark side of the globe isn't pure black
 const ambientLight = new THREE.AmbientLight(0x1a1a30, 0.9);
 scene.add(ambientLight);
 
+// directional light simulates sunlight
+// position is updated each frame to match the sun
 const directionalLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
 scene.add(directionalLight);
 
+// hemisphere light: sky color from above, ground color from below
 const hemiLight = new THREE.HemisphereLight(0x4466aa, 0x112233, 0.5);
 scene.add(hemiLight);
 
-// synchronized world group (globe, atmosphere)
+// WORLD GROUP (globe, atmosphere)
+// bundles the globe core and atmosphere into a single group
 const worldGroup = new THREE.Group();
 worldGroup.add(globe);
 worldGroup.add(atmosphere);
 scene.add(worldGroup);
 
+// DAY / NIGHT STUFF
+// tracks the current angle of the sun's orbit around the scene
 let dayNightAngle = 0;
+// how fast the sun orbits (radians per frame)
+// lower = slower day night cycle
 const DAY_NIGHT_SPEED = 0.0004;
+// whether the planet auto-rotates on its axis
+// pauses during user drag
 let autoRotate = true;
 
+// TERRAIN STATE
+// alows terrain mesh to be removed on rebuild
+// might be temporary
 let currentTerrainMesh = null;
 
+// BUILD WORLD
+// reads slider values, tears down old terrain, generates new map, renders it
 function buildWorld() {
   const btn = document.getElementById("rebuild-btn");
   btn.disabled = true;
@@ -234,6 +269,7 @@ function animate() {
   sun.position.set(sunX, sunY, sunZ);
   sunGlow.position.set(sunX, sunY, sunZ);
   directionalLight.position.set(sunX, sunY, sunZ);
+  sun.rotation.y += 0.001;
 
   if (autoRotate && !isDragging) {
     worldGroup.rotation.y += 0.0016;

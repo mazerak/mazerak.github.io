@@ -144,9 +144,14 @@ function endGame() {
   dateTextField.textContent = `final streak: ${streak}`;
   nameGrid.style.display = "none";
 
+  const red = "🟥";
+  const green = "🟩";
+  const greenNum = green.repeat(streak);
+
   shareText = [
     `egirldle endless`,
-    `Streak: ${streak}`,
+    //`Streak: ${streak}`,
+    `${greenNum}${red}`,
     "https://mazerak.com",
   ].join("\n");
 
