@@ -156,13 +156,43 @@ function renderSphereMap(map, worldGroup, options = {}) {
   return AllMeshes;
 }
 
+// helper function to replicate ocean color formula from sphereBiomeColor
+// used in rivers and lakes
+function waterColorAt(map, r) {
+  const t = map.temperature[r];
+  const m = map.moisture[r];
+  let rr = 15 + 30 * 2 + t * 0.3 * 25;
+  let gg = 30 + 35 * 2 + t * 0.3 * 20;
+  let bb = 80 + 50 * 2 + t * 0.3 * 25;
+  if (t < 0.3) {
+    const coldT = 1 - t / 0.3;
+    rr += coldT * 40;
+    gg += coldT * 45;
+    bb += coldT * 20;
+  }
+  if (t > 0.6) {
+    rr += 5;
+    gg += 10;
+    bb += 5;
+  }
+  const variation = m - 0.5;
+  rr += variation * 20;
+  gg += variation * 25;
+  bb += variation * 15;
+  return {
+    r: Math.max(0, Math.min(255, rr)) / 255,
+    g: Math.max(0, Math.min(255, gg)) / 255,
+    b: Math.max(0, Math.min(255, bb)) / 255,
+  };
+}
+
 // RIVER RENDERER
 function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
-  const { points, flow, downslope, elevation, lakes } = map;
+  const { points, flow, downslope, elevation, lakes, temperature, moisture } =
+    map;
   const threshold = map.riverThreshold;
 
-  // build upstream map: for each region, which regions flow into it
-  // used to find river sources (regions with high flow but no upstream rivers)
+  // build upstream map
   const upstream = Array.from({ length: points.length }, () => []);
   for (let r = 0; r < points.length; r++) {
     if (
@@ -173,9 +203,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
     }
   }
 
-  // find river sources: regions with enough flow to be a river,
-  // but no upstream neighbor that also qualifies as a river
-  // this is where rivers start to begin
+  // find river sources
   const sources = [];
   for (let r = 0; r < points.length; r++) {
     if (elevation[r] < SPHERE_CONFIG.OCEAN_THRESHOLD) continue;
@@ -186,8 +214,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
     }
   }
 
-  // smooth a path using catmull-rom spline interpolation
-  // inserts extra points between each pair for a curved appearance
+  // catmull-rom spline smoothing
   function smoothPath(path, flows, subdivisions = 4) {
     if (path.length < 2) return { path, flows };
 
@@ -195,7 +222,6 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
     const smoothedFlows = [];
 
     for (let i = 0; i < path.length - 1; i++) {
-      // 4 control points, clamped at endpoints
       const p0 = path[Math.max(0, i - 1)];
       const p1 = path[i];
       const p2 = path[i + 1];
@@ -208,7 +234,6 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
         const tt = t * t;
         const ttt = tt * t;
 
-        // catmull-rom interpolation for each axis
         const x =
           0.5 *
           (2 * p1.x +
@@ -229,28 +254,26 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
             (-p0.z + 3 * p1.z - 3 * p2.z + p3.z) * ttt);
 
         const v = new THREE.Vector3(x, y, z);
-        // preserve the radius (height) by keeping the vector length
         v.normalize().multiplyScalar(new THREE.Vector3(x, y, z).length());
         smoothed.push(v);
         smoothedFlows.push(f1 + (f2 - f1) * t);
       }
     }
 
-    // add final point
     smoothed.push(path[path.length - 1]);
     smoothedFlows.push(flows[flows.length - 1]);
 
     return { path: smoothed, flows: smoothedFlows };
   }
 
-  // build all rivers as continuous triangle strips along smoothed paths
+  // build all rivers
   const verts = [];
   const riverColors = [];
-  const riverColor = { r: 48 / 255, g: 64 / 255, b: 127 / 255 };
 
   for (const source of sources) {
     const rawPath = [];
     const rawFlows = [];
+    const rawRegions = [];
     let current = source;
 
     while (
@@ -264,6 +287,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
       const r = elevToRadius(elev) + 0.003;
       rawPath.push(latLonToVec3(lat, lon, r));
       rawFlows.push(flow[current]);
+      rawRegions.push(current);
 
       const next = downslope[current];
       if (next === null) break;
@@ -274,6 +298,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
         const nr = elevToRadius(nelev) + 0.003;
         rawPath.push(latLonToVec3(nlat, nlon, nr));
         rawFlows.push(flow[next]);
+        rawRegions.push(next);
 
         const next2 = downslope[next];
         if (next2 !== null) {
@@ -282,6 +307,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
           const n2r = elevToRadius(n2elev) + 0.003;
           rawPath.push(latLonToVec3(n2lat, n2lon, n2r));
           rawFlows.push(flow[next2]);
+          rawRegions.push(next2);
         }
 
         break;
@@ -290,16 +316,56 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
       current = next;
     }
 
+    // extend toward ocean
+    if (rawPath.length >= 2) {
+      const last = rawPath[rawPath.length - 1];
+      const secondLast = rawPath[rawPath.length - 2];
+      const extension = new THREE.Vector3().subVectors(last, secondLast);
+
+      for (let step = 1; step <= 2; step++) {
+        const extPoint = last
+          .clone()
+          .add(extension.clone().multiplyScalar(step * 0.6));
+        extPoint
+          .normalize()
+          .multiplyScalar(elevToRadius(SPHERE_CONFIG.OCEAN_THRESHOLD));
+        rawPath.push(extPoint);
+        rawFlows.push(rawFlows[rawFlows.length - 1]);
+        rawRegions.push(rawRegions[rawRegions.length - 1]);
+      }
+    }
+
+    // compute water color for each raw path point
+    const rawWaterColors = rawRegions.map((r) => waterColorAt(map, r));
+
     // smooth the path
     const { path, flows: sFlows } = smoothPath(rawPath, rawFlows);
     if (path.length < 2) continue;
 
+    // interpolate water colors to match smoothed path
+    // each raw segment produces 4 smoothed points (subdivisions=4)
+    const smoothColors = [];
+    for (let i = 0; i < path.length; i++) {
+      const rawF =
+        (i / Math.max(1, path.length - 1)) * (rawWaterColors.length - 1);
+      const idx0 = Math.floor(rawF);
+      const idx1 = Math.min(idx0 + 1, rawWaterColors.length - 1);
+      const blend = rawF - idx0;
+      const c0 = rawWaterColors[idx0];
+      const c1 = rawWaterColors[idx1];
+      smoothColors.push({
+        r: c0.r + (c1.r - c0.r) * blend,
+        g: c0.g + (c1.g - c0.g) * blend,
+        b: c0.b + (c1.b - c0.b) * blend,
+      });
+    }
+
     // build left/right edge points along the spline
     const lefts = [];
     const rights = [];
+    const segColors = [];
 
     for (let i = 0; i < path.length; i++) {
-      // direction: average of previous and next segment directions
       let dir;
       if (i === 0) {
         dir = new THREE.Vector3().subVectors(path[1], path[0]).normalize();
@@ -314,26 +380,36 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
       const normal = path[i].clone().normalize();
       const side = new THREE.Vector3().crossVectors(dir, normal).normalize();
 
-      // width grows with flow
       const w = 0.0005 + 0.001 * Math.min(Math.sqrt(sFlows[i] / threshold), 3);
 
-      lefts.push(path[i].clone().add(side.clone().multiplyScalar(w)));
-      rights.push(path[i].clone().add(side.clone().multiplyScalar(-w)));
+      // taper width at the end
+      const fadeStart = Math.floor(path.length * 0.7);
+      const endFade =
+        i > fadeStart ? (i - fadeStart) / (path.length - fadeStart) : 0;
+      const endShrink = i > fadeStart ? 1 - endFade * 0.7 : 1;
+      const finalW = w * endShrink;
+
+      lefts.push(path[i].clone().add(side.clone().multiplyScalar(finalW)));
+      rights.push(path[i].clone().add(side.clone().multiplyScalar(-finalW)));
+
+      // use the interpolated water color at this point
+      segColors.push(smoothColors[i]);
     }
 
-    // build triangle strip: two triangles per segment
+    // build triangle strip
     for (let i = 0; i < path.length - 1; i++) {
       const l1 = lefts[i],
         r1 = rights[i];
       const l2 = lefts[i + 1],
         r2 = rights[i + 1];
+      const c1 = segColors[i];
+      const c2 = segColors[i + 1];
 
       verts.push(l1.x, l1.y, l1.z, r1.x, r1.y, r1.z, l2.x, l2.y, l2.z);
       verts.push(r1.x, r1.y, r1.z, r2.x, r2.y, r2.z, l2.x, l2.y, l2.z);
 
-      for (let j = 0; j < 6; j++) {
-        riverColors.push(riverColor.r, riverColor.g, riverColor.b);
-      }
+      riverColors.push(c1.r, c1.g, c1.b, c1.r, c1.g, c1.b, c2.r, c2.g, c2.b);
+      riverColors.push(c1.r, c1.g, c1.b, c2.r, c2.g, c2.b, c2.r, c2.g, c2.b);
     }
   }
 
@@ -353,7 +429,7 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
   const mat = new THREE.MeshPhongMaterial({
     vertexColors: true,
     side: THREE.DoubleSide,
-    shininess: 1,
+    shininess: 0,
   });
 
   const riverMesh = new THREE.Mesh(geom, mat);
@@ -363,25 +439,20 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
 
 // LAKE RENDERER
 function renderLakes(map, worldGroup, radius, regionPositions) {
-  const { lakes, points } = map;
+  const { lakes, points, temperature, moisture } = map;
   if (!lakes || lakes.size === 0) return null;
 
-  // for each lake region, find the Delaunay triangles that include it
-  // and color those triangles with the lake color
   const geoPoints = points.map((p) => [p.lon, p.lat]);
   const voronoi = d3.geoVoronoi(geoPoints);
   const delTriangles = voronoi.delaunay.triangles;
 
-  const lakeColor = { r: 60 / 255, g: 80 / 255, b: 140 / 255 };
   const verts = [];
   const colors = [];
 
   for (let i = 0; i < delTriangles.length; i++) {
     const [a, b, c] = delTriangles[i];
-    // only draw triangles where all 3 vertices are lake regions
     if (!lakes.has(a) || !lakes.has(b) || !lakes.has(c)) continue;
 
-    // position lake surface slightly above terrain to avoid z-fighting
     const offset = 0.003;
     const pA = regionPositions[a]
       .clone()
@@ -397,17 +468,11 @@ function renderLakes(map, worldGroup, radius, regionPositions) {
       .multiplyScalar(regionPositions[c].length() + offset);
 
     verts.push(pA.x, pA.y, pA.z, pB.x, pB.y, pB.z, pC.x, pC.y, pC.z);
-    colors.push(
-      lakeColor.r,
-      lakeColor.g,
-      lakeColor.b,
-      lakeColor.r,
-      lakeColor.g,
-      lakeColor.b,
-      lakeColor.r,
-      lakeColor.g,
-      lakeColor.b,
-    );
+
+    const cA = waterColorAt(map, a);
+    const cB = waterColorAt(map, b);
+    const cC = waterColorAt(map, c);
+    colors.push(cA.r, cA.g, cA.b, cB.r, cB.g, cB.b, cC.r, cC.g, cC.b);
   }
 
   if (verts.length === 0) return null;
