@@ -36,14 +36,28 @@ const globe = new THREE.Mesh(globeGeometry, globeMaterial);
 
 // ATMOSPHERE
 // gives a faint blue halo around the globe edges
-const atmosGeometry = new THREE.SphereGeometry(1.075, 64, 64);
-const atmosMaterial = new THREE.MeshBasicMaterial({
+const atmosGeometryLayer1 = new THREE.SphereGeometry(1.075, 64, 64);
+const atmosMaterialLayer1 = new THREE.MeshBasicMaterial({
   color: 0x87cefa,
   transparent: true,
   opacity: 0.15,
   side: THREE.BackSide,
 });
-const atmosphere = new THREE.Mesh(atmosGeometry, atmosMaterial);
+const atmosGeometryLayer2 = new THREE.SphereGeometry(1.2, 64, 64);
+const atmosMaterialLayer2 = new THREE.MeshBasicMaterial({
+  color: 0xbbe2f9,
+  transparent: true,
+  opacity: 0.05,
+  side: THREE.BackSide,
+});
+const atmosphereLayer1 = new THREE.Mesh(
+  atmosGeometryLayer1,
+  atmosMaterialLayer1,
+);
+const atmosphereLayer2 = new THREE.Mesh(
+  atmosGeometryLayer2,
+  atmosMaterialLayer2,
+);
 
 // STARS
 // scatter 8000 colored points on a large sphere around the scene
@@ -102,7 +116,8 @@ scene.add(hemiLight);
 // bundles the globe core and atmosphere into a single group
 const worldGroup = new THREE.Group();
 worldGroup.add(globe);
-worldGroup.add(atmosphere);
+worldGroup.add(atmosphereLayer1);
+worldGroup.add(atmosphereLayer2);
 scene.add(worldGroup);
 
 // DAY / NIGHT STUFF
@@ -194,7 +209,7 @@ document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("slider-ocean").value = 0.35;
   document.getElementById("slider-cont-min").value = 4;
   document.getElementById("slider-cont-max").value = 7;
-  document.getElementById("slider-height").value = 0.15;
+  document.getElementById("slider-height").value = 0.2;
   document.getElementById("slider-thresh").value = 0.98;
 
   document.getElementById("val-subdivisions").textContent = "6";
@@ -202,7 +217,7 @@ document.getElementById("reset-default-btn").addEventListener("click", () => {
   document.getElementById("val-ocean").textContent = "0.35";
   document.getElementById("val-cont-min").textContent = "4";
   document.getElementById("val-cont-max").textContent = "7";
-  document.getElementById("val-height").textContent = "0.15";
+  document.getElementById("val-height").textContent = "0.2";
   document.getElementById("val-thresh").textContent = 0.98;
 });
 
