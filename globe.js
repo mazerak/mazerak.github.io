@@ -229,9 +229,6 @@ let isDragging = false;
 let previousMouse = { x: 0, y: 0 };
 // stores rotational velocity for momentum effect
 let rotationVelocity = { x: 0, y: 0 };
-// mouse position in normalized device coordinates
-const mouse = new THREE.Vector2();
-const raycaster = new THREE.Raycaster();
 
 // start draggin once mouse is held down
 container.addEventListener("mousedown", (e) => {
@@ -242,10 +239,6 @@ container.addEventListener("mousedown", (e) => {
 
 // globe rotation on mouse move
 container.addEventListener("mousemove", (e) => {
-  const rect = container.getBoundingClientRect();
-  mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
   if (isDragging) {
     // how far mouse moved since last frame
     const deltaX = e.clientX - previousMouse.x;

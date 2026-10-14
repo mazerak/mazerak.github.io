@@ -64,10 +64,8 @@ function renderSphereMap(map, worldGroup, options = {}) {
     regionPositions[r] = latLonToVec3(points[r].lat, points[r].lon, h);
   }
 
-  // create delaunay triangles
-  const geoPoints = points.map((p) => [p.lon, p.lat]);
-  const voronoi = d3.geoVoronoi(geoPoints);
-  const delTriangles = voronoi.delaunay.triangles;
+  // delaunay triangles were already computed in generateSphereMap — reuse them
+  const delTriangles = map.triangles;
 
   // build gpu arrays
   // 3 vertices per triangle, 3 float components per vertex (position or color)
@@ -82,9 +80,9 @@ function renderSphereMap(map, worldGroup, options = {}) {
     const pC = regionPositions[c];
 
     // webgl interpolates between the three vertex colors
-    cA = regionColors[a];
-    cB = regionColors[b];
-    cC = regionColors[c];
+    const cA = regionColors[a];
+    const cB = regionColors[b];
+    const cC = regionColors[c];
 
     // write position and color data into flat arrays
     const base = i * 9;
@@ -439,12 +437,10 @@ function renderRivers(map, worldGroup, latLonToVec3, elevToRadius) {
 
 // LAKE RENDERER
 function renderLakes(map, worldGroup, radius, regionPositions) {
-  const { lakes, points, temperature, moisture } = map;
+  const { lakes } = map;
   if (!lakes || lakes.size === 0) return null;
 
-  const geoPoints = points.map((p) => [p.lon, p.lat]);
-  const voronoi = d3.geoVoronoi(geoPoints);
-  const delTriangles = voronoi.delaunay.triangles;
+  const delTriangles = map.triangles;
 
   const verts = [];
   const colors = [];

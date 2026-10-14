@@ -174,11 +174,11 @@ function generateSphereMap() {
 
   // map points from lat, lon to lon, lat for d3-geo-voronoi
   const geoPoints = points.map((p) => [p.lon, p.lat]);
-  const voronoi = d3.geoVoronoi(geoPoints);
-  // voronoi cell boundaries used for coastline rendering
-  const polygons = voronoi.polygons();
-  // delaunay triangulation, used for adjacency matrix and rendering
-  const delaunay = voronoi.delaunay;
+  // ponytail: compute the (expensive) sphere voronoi ONCE here and reuse its
+  // delaunay triangles everywhere. previously it was recomputed in the renderer
+  // and again in the lake renderer — 3x the work per rebuild for identical input.
+  const delaunay = d3.geoVoronoi(geoPoints).delaunay;
+  const triangles = delaunay.triangles;
 
   // adjacency matrix
   const adjacency = buildSphereAdjacency(points.length, delaunay);
@@ -187,8 +187,8 @@ function generateSphereMap() {
   const map = {
     points, // array of {lat, lon} for each region center
     geoPoints, // array of [lon, lat] for d3-geo-voronoi
+    triangles, // delaunay triangles, shared with the renderer
     numRegions: points.length, // total number of regions
-    polygons: polygons.features, // GeoJSON features for each voronoi cell
     adjacency, // array of region indices neighboring region r
     elevation: null, // filled in below
     moisture: null, // filled in below
