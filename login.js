@@ -16,7 +16,7 @@ if (existingToken) {
   })
     .then((res) => {
       if (res.ok) {
-        window.location.href = "home.html";
+        window.location.href = "index.html";
       } else {
         localStorage.removeItem("token");
         document.body.style.visibility = "visible";
@@ -48,7 +48,7 @@ async function login() {
 
     const data = await res.json();
     localStorage.setItem("token", data.token);
-    window.location.href = "home.html";
+    window.location.href = "index.html";
   } catch (err) {
     console.error("Request failed: ", err);
     errorMsg.textContent = "Could not reach server";

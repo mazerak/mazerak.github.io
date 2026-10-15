@@ -174,7 +174,7 @@
     <nav class="navbar navbar-dark navbar-expand">
       <div class="container-fluid">
         <div class="navbar-nav me-auto navbar-spacing">
-          <a class="navbar-brand" href="home.html">home</a>
+          <a class="navbar-brand" href="index.html">home</a>
           <a class="navbar-brand" href="daily.html">daily</a>
           <a class="navbar-brand" href="endless.html">endless</a>
           <a class="navbar-brand" href="globe.html">globe thing</a>
@@ -182,6 +182,7 @@
         </div>
       </div>
     </nav>
+    <script src="nav.js"></script>
 
     <div class="background-wrapper">
       <div class="steam-panel steam-card">
@@ -205,8 +206,6 @@
 
     <script>
       const API = "https://api.mazerak.com";
-      const token = localStorage.getItem("token");
-      if (!token) window.location.href = "index.html";
 
       const $ = (id) => document.getElementById(id);
       const esc = (s) =>
@@ -223,14 +222,9 @@
       async function api(path, body) {
         const r = await fetch(API + path, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: token },
+          headers: { "Content-Type": "application/json", Authorization: localStorage.getItem("token") || "" },
           body: JSON.stringify(body),
         });
-        if (r.status === 401) {
-          localStorage.removeItem("token");
-          window.location.href = "index.html";
-          throw new Error("logged out");
-        }
         const d = await r.json().catch(() => ({ error: `server error (${r.status})` }));
         if (!r.ok) {
           const err = new Error(d.error || `server error (${r.status})`);

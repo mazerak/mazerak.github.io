@@ -1,4 +1,5 @@
 const token = localStorage.getItem("token");
+if (!token) window.location.href = "login.html";
 
 async function fetchWithAuth(url, body = {}) {
   const res = await fetch(url, {
@@ -8,7 +9,8 @@ async function fetchWithAuth(url, body = {}) {
   });
   if (res.status === 401) {
     // token expired
-    window.location.href = "index.html";
+    localStorage.removeItem("token");
+    window.location.href = "login.html";
     return null;
   }
   return await res.json();
