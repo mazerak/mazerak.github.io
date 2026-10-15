@@ -135,6 +135,17 @@ let autoRotate = true;
 // might be temporary
 let currentTerrainMesh = null;
 
+// removes the current terrain meshes and frees their gpu memory
+function clearTerrain() {
+  if (!currentTerrainMesh) return;
+  currentTerrainMesh.forEach((m) => {
+    worldGroup.remove(m);
+    m.geometry.dispose();
+    m.material.dispose();
+  });
+  currentTerrainMesh = null;
+}
+
 // BUILD WORLD
 // reads slider values, tears down old terrain, generates new map, renders it
 function buildWorld() {
@@ -167,15 +178,14 @@ function buildWorld() {
   );
 
   // remove old terrain if it exists
-  if (currentTerrainMesh) {
-    currentTerrainMesh.forEach((m) => worldGroup.remove(m));
-    currentTerrainMesh = null;
-  }
+  clearTerrain();
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       // generate map data
       const map = generateSphereMap();
+      // clear again: another build may have added terrain while this one waited
+      clearTerrain();
       // render map as a Three.js mesh
       currentTerrainMesh = renderSphereMap(map, worldGroup, { heightScale });
       loadingEl.style.display = "none";
@@ -345,13 +355,9 @@ animate();
 // creates a textured sun that looks similar to the planet, uses the same icosphere and noise technique but with sun colors instead of earth colors
 function generateSunMesh(radius, subdivisions) {
   const noise = new SimplexNoise();
-  // generate an icosphere
-  const points = icosphere(subdivisions);
-  // d3-geo-voronoi requires [lon, lat] instead of [lat, lon]
-  const geoPoints = points.map((p) => [p.lon, p.lat]);
-  const voronoi = d3.geoVoronoi(geoPoints);
-  // create delaunay triangulation, where each triangle connects 3 point indices
-  const delTriangles = voronoi.delaunay.triangles;
+  // generate an icosphere, plus its delaunay triangulation
+  // where each triangle connects 3 point indices
+  const { points, triangles: delTriangles } = icosphere(subdivisions);
 
   // compute elevation and 3d position for each point
   const elevations = [];

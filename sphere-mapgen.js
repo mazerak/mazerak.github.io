@@ -83,13 +83,15 @@ function icosphere(subdivisions) {
 
   // subdivision
   // for each subdivision level, split each triangle into 4 smaller triangles
-  const midpointCache = {};
+  const midpointCache = new Map();
   // finds or creates midpoint between 2 vertices
   // caches result so each edge's midpoint is only computed once
   function getMidpoint(i, j) {
-    // use sorted key so edge (i, j) and edge (j, i) map to the same point
-    const key = Math.min(i, j) + "-" + Math.max(i, j);
-    if (midpointCache[key] !== undefined) return midpointCache[key];
+    // use sorted numeric key so edge (i, j) and edge (j, i) map to the same point
+    // (numbers instead of "i-j" strings: much faster at high subdivisions)
+    const key = i < j ? i * 1e7 + j : j * 1e7 + i;
+    const cached = midpointCache.get(key);
+    if (cached !== undefined) return cached;
 
     // average the 2 vertices
     const [x1, y1, z1] = vertices[i];
@@ -106,7 +108,7 @@ function icosphere(subdivisions) {
     // add the new vertex and cache the index
     const idx = vertices.length;
     vertices.push([mx, my, mz]);
-    midpointCache[key] = idx;
+    midpointCache.set(key, idx);
     return idx;
   }
 
@@ -124,14 +126,22 @@ function icosphere(subdivisions) {
     faces = newFaces;
   }
 
-  // convert xyz coords to lat/lon for use with d3-geo-voronoi
-  return vertices.map(([x, y, z]) => {
+  // convert xyz coords to lat/lon
+  const points = vertices.map(([x, y, z]) => {
     // latitude in range (-90, 90)
     const lat = Math.asin(y) * (180 / Math.PI);
     // longitude in range (-180, 180)
     const lon = Math.atan2(z, -x) * (180 / Math.PI);
     return { lat, lon };
   });
+
+  // the subdivided faces ARE the delaunay triangulation of these points
+  // (checked against d3.geoVoronoi up to 8 subdivisions: identical triangles),
+  // so no need to run the very slow sphere voronoi. winding is flipped to [a, c, b]
+  // to match what d3 produced, so lighting/normals stay exactly the same
+  const triangles = faces.map(([a, b, c]) => [a, c, b]);
+
+  return { points, triangles };
 }
 
 // coordinate conversion
@@ -169,24 +179,16 @@ function greatCircleDist(lat1, lon1, lat2, lon2) {
 function generateSphereMap() {
   // generate icosphere from config's num of subdivisions
   // really should rename that variable but w/e
-  const points = icosphere(SPHERE_CONFIG.NUM_POINTS);
+  // the icosphere also hands back its triangles, shared with the renderer
+  const { points, triangles } = icosphere(SPHERE_CONFIG.NUM_POINTS);
   //const points = fibonacciSphere(SPHERE_CONFIG.NUM_POINTS);
 
-  // map points from lat, lon to lon, lat for d3-geo-voronoi
-  const geoPoints = points.map((p) => [p.lon, p.lat]);
-  // ponytail: compute the (expensive) sphere voronoi ONCE here and reuse its
-  // delaunay triangles everywhere. previously it was recomputed in the renderer
-  // and again in the lake renderer — 3x the work per rebuild for identical input.
-  const delaunay = d3.geoVoronoi(geoPoints).delaunay;
-  const triangles = delaunay.triangles;
-
   // adjacency matrix
-  const adjacency = buildSphereAdjacency(points.length, delaunay);
+  const adjacency = buildSphereAdjacency(points.length, triangles);
 
   // map object that gets passed to renderer
   const map = {
     points, // array of {lat, lon} for each region center
-    geoPoints, // array of [lon, lat] for d3-geo-voronoi
     triangles, // delaunay triangles, shared with the renderer
     numRegions: points.length, // total number of regions
     adjacency, // array of region indices neighboring region r
@@ -218,24 +220,26 @@ function generateSphereMap() {
 // adjacency matrix builder
 // walks every delaunay triangle and records which regions are neighbors
 // a triangle [a,b,c] means that there are adjacent pairs [a,b], [a,c], and [b,c]
-function buildSphereAdjacency(numPoints, delaunay) {
-  // use Sets to automatically deduplicate neighbor pairs
-  const adj = Array.from({ length: numPoints }, () => new Set());
-  const triangles = delaunay.triangles;
+function buildSphereAdjacency(numPoints, triangles) {
+  // every region has only 5 or 6 neighbors, so a plain array + includes() dedupes
+  // faster than a Set (same insertion order as before)
+  const adj = Array.from({ length: numPoints }, () => []);
+  const link = (from, to) => {
+    if (!adj[from].includes(to)) adj[from].push(to);
+  };
 
-  // d3-geo-voronoi stores triangles as nested arrays, so need to parse that
+  // triangles are stored as nested [a, b, c] arrays
   for (let i = 0; i < triangles.length; i++) {
     const [a, b, c] = triangles[i];
-    adj[a].add(b);
-    adj[a].add(c);
-    adj[b].add(a);
-    adj[b].add(c);
-    adj[c].add(a);
-    adj[c].add(b);
+    link(a, b);
+    link(a, c);
+    link(b, a);
+    link(b, c);
+    link(c, a);
+    link(c, b);
   }
 
-  // convert Set to array and then return
-  return adj.map((s) => [...s]);
+  return adj;
 }
 
 // ELEVATION GENERATOR
@@ -271,6 +275,11 @@ function assignSphereElevation(map) {
       strength: 0.7 + Math.random() * 0.3, // how strongly this seed raises adjacent terrain
     });
   }
+  // unit xyz + cos(size) per seed, for a cheap "is this region even in range" check below
+  for (const seed of continentSeeds) {
+    seed.pos = sphereLatLonToXYZ(seed.lat, seed.lon, 1);
+    seed.minDot = Math.cos(seed.size) - 1e-9; // tiny margin so borderline regions still get the exact formula
+  }
 
   // compute elevation for each region
   for (let r = 0; r < numRegions; r++) {
@@ -304,6 +313,11 @@ function assignSphereElevation(map) {
     // uses linear falloff with great circle distance
     let continentInfluence = 0;
     for (const seed of continentSeeds) {
+      // dot product of unit vectors = cos(angle), so this skips seeds farther than seed.size
+      // (their falloff would be 0 anyway) without paying for the haversine trig
+      const dot =
+        pos.x * seed.pos.x + pos.y * seed.pos.y + pos.z * seed.pos.z;
+      if (dot < seed.minDot) continue;
       const dist = greatCircleDist(lat, lon, seed.lat, seed.lon);
       // 1 at center, 0 at seed.size distance
       const falloff = Math.max(0, 1 - dist / seed.size);
@@ -386,14 +400,16 @@ function assignSphereDownslope(map) {
 // flow accumulates as the downslope chain continues
 function assignSphereRiverFlow(map) {
   const { elevation, moisture, downslope } = map;
-  // sort regions highest to lowest so we process upstream before downstream
-  const regions = Array.from({ length: elevation.length }, (_, r) => r);
+  // sort land regions highest to lowest so we process upstream before downstream
+  // (ocean is filtered out before sorting since it's skipped anyway — less to sort)
+  const regions = [];
+  for (let r = 0; r < elevation.length; r++) {
+    if (elevation[r] >= SPHERE_CONFIG.OCEAN_THRESHOLD) regions.push(r);
+  }
   regions.sort((r1, r2) => elevation[r2] - elevation[r1]);
 
   const flow = new Array(elevation.length).fill(0);
   for (const r of regions) {
-    // skip ocean
-    if (elevation[r] < SPHERE_CONFIG.OCEAN_THRESHOLD) continue;
     // each region contributes its own moisture as base flow
     flow[r] += moisture[r];
 
@@ -417,9 +433,10 @@ function computeSphereRiverThreshold(map) {
     }
   }
   if (landFlows.length === 0) return Infinity;
-  landFlows.sort((a, b) => a - b);
-  const idx = Math.floor(landFlows.length * SPHERE_CONFIG.RIVER_PERCENTILE);
-  return landFlows[Math.min(idx, landFlows.length - 1)];
+  // typed array sort is numeric by default and much faster than a comparator sort
+  const sorted = Float64Array.from(landFlows).sort();
+  const idx = Math.floor(sorted.length * SPHERE_CONFIG.RIVER_PERCENTILE);
+  return sorted[Math.min(idx, sorted.length - 1)];
 }
 
 // LAKE FINDER
@@ -581,6 +598,7 @@ const BIOME_COLORS = {
 
 // BIOME COLOR
 // determines final rgb color based on biome type and blending
+// returns {r, g, b} with integer values 0-255
 function sphereBiomeColor(map, r) {
   let e = (map.elevation[r] - SPHERE_CONFIG.OCEAN_THRESHOLD) * 2;
   const m = map.moisture[r];
@@ -629,7 +647,11 @@ function sphereBiomeColor(map, r) {
       bb *= 1 - deepT * 0.3;
     }
 
-    return `rgb(${Math.max(0, Math.min(255, rr)) | 0}, ${Math.max(0, Math.min(255, gg)) | 0}, ${Math.max(0, Math.min(255, bb)) | 0})`;
+    return {
+      r: Math.max(0, Math.min(255, rr)) | 0,
+      g: Math.max(0, Math.min(255, gg)) | 0,
+      b: Math.max(0, Math.min(255, bb)) | 0,
+    };
   } else {
     // land — continuous blending between biome anchor colors
     e = Math.min(1, e);
@@ -690,6 +712,6 @@ function sphereBiomeColor(map, r) {
     let gg = base.g * (1 - totalSnow) + 248 * totalSnow;
     let bb = base.b * (1 - totalSnow) + 255 * totalSnow;
 
-    return `rgb(${rr | 0}, ${gg | 0}, ${bb | 0})`;
+    return { r: rr | 0, g: gg | 0, b: bb | 0 };
   }
 }

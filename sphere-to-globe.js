@@ -18,18 +18,6 @@ function renderSphereMap(map, worldGroup, options = {}) {
     );
   }
 
-  // color parser
-  // converts "rgb{r, g, b)" string to a plan {r, g, b} object with values ranging from 0-1 for Three.js
-  function parseRGBString(str) {
-    const match = str.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
-    if (!match) return { r: 0.5, g: 0.5, b: 0.5 };
-    return {
-      r: parseInt(match[1]) / 255,
-      g: parseInt(match[2]) / 255,
-      b: parseInt(match[3]) / 255,
-    };
-  }
-
   // elevation to radius
   // maps a region's elevation value to a distance from the sphere's center
   // regions at the ocean threshold sit at the base radius
@@ -58,7 +46,9 @@ function renderSphereMap(map, worldGroup, options = {}) {
   const regionPositions = [];
   for (let r = 0; r < map.numRegions; r++) {
     // get the color from the biome function, which returns a color based on elevation and moisture
-    regionColors[r] = parseRGBString(sphereBiomeColor(map, r));
+    // scaled from 0-255 to the 0-1 range Three.js wants
+    const c = sphereBiomeColor(map, r);
+    regionColors[r] = { r: c.r / 255, g: c.g / 255, b: c.b / 255 };
     // get the 3d position at this region's elevation adjusted height
     const h = elevToRadius(elevation[r]);
     regionPositions[r] = latLonToVec3(points[r].lat, points[r].lon, h);
